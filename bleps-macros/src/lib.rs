@@ -131,6 +131,28 @@ pub fn gatt(input: TokenStream) -> TokenStream {
                                                         return quote!{ compile_error!("Unexpected"); }.into();
                                                     }
                                                 }
+                                                "readable" => {
+                                                    if let Expr::Lit(value) = field.expr {
+                                                        if let Lit::Bool(s) = value.lit {
+                                                            charact.readable = s.value();
+                                                        } else {
+                                                            return quote!{ compile_error!("Unexpected"); }.into();
+                                                        }
+                                                    } else {
+                                                        return quote!{ compile_error!("Unexpected"); }.into();
+                                                    }
+                                                }
+                                                "writable" => {
+                                                    if let Expr::Lit(value) = field.expr {
+                                                        if let Lit::Bool(s) = value.lit {
+                                                            charact.writable = s.value();
+                                                        } else {
+                                                            return quote!{ compile_error!("Unexpected"); }.into();
+                                                        }
+                                                    } else {
+                                                        return quote!{ compile_error!("Unexpected"); }.into();
+                                                    }
+                                                }
                                                 "description" => {
                                                     if let Expr::Lit(value) = field.expr {
                                                         if let Lit::Str(s) = value.lit {
@@ -297,11 +319,11 @@ pub fn gatt(input: TokenStream) -> TokenStream {
         for (j, characteristic) in service.characteristics.iter().enumerate() {
             let mut char_data: Vec<u8> = Vec::new();
             char_data.push(
-                if characteristic.read.is_some() {
+                if characteristic.read.is_some() || characteristic.readable {
                     0x02
                 } else {
                     0
-                } | if characteristic.write.is_some() {
+                } | if characteristic.write.is_some() || characteristic.writable {
                     0x08
                 } else {
                     0
@@ -598,6 +620,8 @@ struct Characteristic {
     description: Option<String>,
     notify: bool,
     notify_cb: Option<String>,
+    readable: bool,
+    writable: bool,
     name: Option<String>,
     descriptors: Vec<Descriptor>,
 }
