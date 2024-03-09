@@ -153,6 +153,14 @@ pub fn gatt(input: TokenStream) -> TokenStream {
                                                         return quote!{ compile_error!("Unexpected"); }.into();
                                                     }
                                                 }
+                                                "notify_cb" => {
+                                                    if let Expr::Path(p) = field.expr {
+                                                        let name = path_to_string(p.path);
+                                                        charact.notify_cb = Some(name);
+                                                    } else {
+                                                        return quote!{ compile_error!("Unexpected"); }.into();
+                                                    }
+                                                }
                                                 "name" => {
                                                     if let Expr::Lit(value) = field.expr {
                                                         if let Lit::Str(s) = value.lit {
@@ -395,6 +403,13 @@ pub fn gatt(input: TokenStream) -> TokenStream {
                 );
 
                 let backing_data = format_ident!("_attr_data{}", current_handle);
+                let notify_cb_call = if let Some(cb) = &characteristic.notify_cb {
+                    let cb = format_ident!("{}", cb);
+                    quote!(#cb(unsafe{#backing_data[0] & 0x1 == 0x1}))
+                } else {
+                    quote!()
+                };
+
                 pre.push(quote!(
                     #[allow(non_upper_case_globals)]
                     static mut #backing_data: [u8; 2] = [0u8; 2];
@@ -424,6 +439,7 @@ pub fn gatt(input: TokenStream) -> TokenStream {
                                 }
                             }
                         }
+                        #notify_cb_call;
                     };
                 ));
 
@@ -572,6 +588,7 @@ struct Characteristic {
     write: Option<String>,
     description: Option<String>,
     notify: bool,
+    notify_cb: Option<String>,
     name: Option<String>,
     descriptors: Vec<Descriptor>,
 }
