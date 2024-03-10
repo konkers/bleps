@@ -100,12 +100,13 @@ pub fn gatt(input: TokenStream) -> TokenStream {
                                                     }
                                                 }
                                                 "data" => {
-                                                    if let Expr::Path(p) = field.expr {
-                                                        let name = path_to_string(p.path);
-                                                        charact.data = Some(name);
-                                                    } else {
-                                                        return quote!{ compile_error!("Unexpected"); }.into();
-                                                    }
+                                                    charact.data = Some(field.expr);
+                                                    // if let Expr::Path(p) = field.expr {
+                                                    //     let name = path_to_string(p.path);
+                                                    //     charact.data = Some(name);
+                                                    // } else {
+                                                    //     return quote!{ compile_error!("Unexpected"); }.into();
+                                                    // }
                                                 }
                                                 "value" => {
                                                     if let Expr::Path(p) = field.expr {
@@ -385,9 +386,9 @@ pub fn gatt(input: TokenStream) -> TokenStream {
                 } else if let Some(name) = &characteristic.value {
                     let vname = format_ident!("{}", name);
                     quote!(let mut #gen_attr_att_data_ident = #vname;)
-                } else if let Some(name) = &characteristic.data {
-                    let dname = format_ident!("{}", name);
-                    quote!(let mut #gen_attr_att_data_ident = #dname;)
+                } else if let Some(expr) = &characteristic.data {
+                    //  let dname = format_ident!("{}", name);
+                    quote!(let mut #gen_attr_att_data_ident = #expr;)
                 } else {
                     return quote! { compile_error!(
                         "Characteristic data fields missing: 'read'/'write' nor 'value' nor 'data'"
@@ -604,16 +605,16 @@ fn uuid_to_bytes(uuid: &str) -> Vec<u8> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct Service {
     uuid: String,
     characteristics: Vec<Characteristic>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 struct Characteristic {
     uuid: String,
-    data: Option<String>,
+    data: Option<Expr>,
     value: Option<String>,
     read: Option<String>,
     write: Option<String>,
